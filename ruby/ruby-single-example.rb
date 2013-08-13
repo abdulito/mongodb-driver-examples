@@ -1,74 +1,65 @@
+#!/usr/bin/ruby
+
 # Written with Ruby 2.0.0-p247
-# ruby-single-example.rb
-# 
-# A simple ruby script covering connection to a MongoDB database given a
-# fully-qualified URI. The standard connection practice is using the MongoClient 
-# object along with using a connection URI connection model so developers
-# can use the same code to handle various database configuration possibilities
-# (single, master/slave, replica sets).
-#
-# Author::  MongoLab
-
-# First, require the ruby MongoDB driver mongo. Must include Mongo to initialize mongo
-#
-
+# A ruby script connecting to a MongoDB database given a MongoDB Connection URI.
 
 require 'mongo'
 include Mongo
 
-# Example URI : mongodb://<dbuser>:<dbpassword>@xx000000.mongolab.com:00000/dbname
-# Your DB user can be found by navigating into your database and clicking on the
-# users tab.
-#
+### Standard URI format: mongodb://[dbuser:dbpassword@]host:port/dbname
 
-uri = 'mongodb://sandbox:test@ds039768.mongolab.com:39768/test2345'
+URI = 'mongodb://sandbox:test@ds039768.mongolab.com:39768/test2345'
 
 begin
-	client = MongoClient.from_uri(uri)
+  conn = MongoClient.from_uri(URI)
 rescue Mongo::ConnectionFailure
-	p 'Connection Failed, check uri'
+  p 'Connection Failed, check uri'
 end
 
-db_name = uri[%r{/([^/\?]+)(\?|$)}, 1]
-db = client.db(db_name)
+db_name = URI[%r{/([^/\?]+)(\?|$)}, 1]
+db = conn.db(db_name)
 
-# To begin with, we'll add some Ruby programmers. Note that nothing is required
-# to create the ruby collection--it is created automatically when we insert into it. 
-# We can also access the collection in multiple ways. These are simple JSON 
-# objects.
-#
+# We'll add a few songs to the database. Nothing is required to create
+# the songs collection--it is created automatically when we insert.
 
-db['ruby'].insert({'name' => 'Jonathan Gillette',
-					'nick' => 'why the lucky stiff',
-					'related' => {'primary' => 'Ruby', 'secondary' => ['writing', 'music', 'cartoons', 'artistry']}})
+songs = db.collection('songs')
 
-ruby = db.collection('ruby')
+songs.insert({
+            'name' => 'Jonathan Gillette',
+            'nick' => 'why the lucky stiff',
+            'related' => {'primary' => 'Ruby', 
+                          'secondary' => ['writing', 'music', 'cartoons', 'artistry']
+                        }
+          })
 
-ruby.insert({'name' => 'Yukihiro Matsumoto',
-			'nick' => 'Matz',
-			'related' => {'primary' => 'Heroku', 'secondary' => ['ruby', 'writing']}})
+songs.insert({
+            'name' => 'Yukihiro Matsumoto',
+            'nick' => 'Matz',
+            'related' => {'primary' => 'Heroku', 
+                          'secondary' => ['songs', 'writing']
+                        }
+          })
 
-ruby.insert({'name' => 'David Heinemeier Hansson',
-			'nick' => 'DHH',
-			'related' => {'primary' => 'Rails', 'secondary' => ['race car driving']}})
+songs.insert({
+            'name' => 'David Heinemeier Hansson',
+            'nick' => 'DHH',
+            'related' => {'primary' => 'Rails', 
+                          'secondary' => ['race car driving']
+                        }
+          })
 
-# Since Jonathan's nickname is a bit lengthy, let's shorten it. 
-#
-# Note that in Ruby, MongoDB $ operators should be quoted.
-#
-
-ruby.update({'name' => 'Jonathan Gillette'}, {'$set' => {'nick' => '_why'}})
+songs.update({'name' => 'Jonathan Gillette'}, {'$set' => {'nick' => '_why'}})
 
 
-# Our query returns a Cursor, which can be counted and iterated 
-# normally.
-#
+# Our query returns a cursor, which can be counted and iterated normally.
+# Update changes the order of docs in cursor- use sort if needed.
 
-cursor = ruby.find()
+cursor = songs.find()
 
-cursor.find().each{|doc| puts doc['name'] + ', also known as ' + doc['nick'] + ', is known for his work with ' + doc['related']['primary']}
+cursor.each{|doc| puts "#{doc['name']}," +
+                       " also known as #{doc['nick']}," +
+                       " is known for his work with #{doc['related']['primary']}"}
 
-# Since this is an example, we'll clean up after ourselves.
-#
+### Since this is an example, we'll clean up after ourselves.
 
-ruby.drop()
+songs.drop()
